@@ -739,3 +739,26 @@ so our total batch size divided by the total number of chips cannot drop below
 $$\frac{4 \alpha^2}{F \cdot M_X \cdot M_Y},$$
 
 as we had derived above.
+
+### Appendix D - Unifying the "compute-bound" rules for various parallelism schemes
+
+To make it easier to remember, we can cast the various "compute-bound" rules from this section into a unified form which also highlights their physical origin. This form is:
+\begin{equation}
+\frac{\text{Effective matrix dimension}}{\text{Effective sharding-axis size}} \geq \frac{\text{Accelerator FLOPS/s}}{\text{Relevant bandwidth}}
+\end{equation}
+
+This applies to both single-device computations (in which case the relevant bandwidth is the HBM bandwith) and multi-device computations (in which case the relevant bandwidth is the ICI bandwidth)
+
+| Scenario | Compute-bound condition |
+|---|---|
+| Single-device | $$B \geq \frac{C}{W_\text{HBM}}$$ |
+| Data parallelism (incl. FSDP) | $$\frac{B}{X} \geq \frac{C}{W_\text{ici}}$$ |
+| Model parallelism | $$\frac{F}{Y} \geq \frac{C}{W_\text{ici}}$$ |
+| Mixed model+data parallelism | $$\frac{\sqrt{BF}}{\sqrt{XY}} \geq \frac{C}{W_\text{ici}}$$|
+
+Note that we omitted some $O(1)$ factors for the mixed rule (like $M_X$ and $M_Y$) for cleanliness and to emphasize the scaling properties.  
+
+Apart from being easier to remember, these matrices highlight the origin of these rules: for a given situation, we have a computation time $T_\text{math}$ and a transfer/communication time $T_\text{comms}$ or $T_\text{HBM}$. Both of these are functions of our matrix dimensions, and the relevant accelerator properties. Crucially, $T_\text{math}$ and $T_\text{comms}$/$T_\text{HBM}$ scale *differently* with respect to certain parameters, so by varying these parameters we can find a regime in which one or the other dominates.
+
+For example, in the single-device setting, $T_\text{math}$ and $T_\text{comms}$ scale differently with respect to the *batch size* matrix dimension: $T_\text{math} \propto B$ while $T_\text{comms} \propto 1$. By contrast, in the model-parallelism setting, $T_\text{math}$ and $T_\text{comms}$ scale differently with respect to the *feedforward* matrix dimension: $T_\text{math} \propto F$ while $T_\text{comms} \propto 1$. The particular dimension (or combination of dimensions) which exhibit these different scalings is simply a consequence of what matrices are being communicated, so by thinking about the various sharding schemes in this way, one can quickly remember or rederive the relevant conditions.
+
