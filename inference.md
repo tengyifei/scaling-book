@@ -378,7 +378,7 @@ where $\beta = W_\text{hbm} / W_\text{ici}$. This number is usually around 8 for
 
 For the attention layer, we also model shard attention $$W_Q$$ and $$W_O$$ over heads Megatron style. The KV weights are quite small, and replicating them is often cheaper than sharding beyond $K$-way sharding.
 
-<p markdown=1 class="takeaway">**Takeaway:** The main way we shard the model parameters for generation is using variants of model parallelism. Communication moves activations instead of KV caches or parameters, which are larger.</p>
+<p markdown=1 class="takeaway">**Takeaway:** our only options during generation are variants of model parallelism. We aim to move activations instead of KV caches or parameters, which are larger. When our batch size is large, we do model parallelism up to the FLOPs-ICI bound ($F / \alpha$). When our batch size is smaller, we can improve latency by model sharding more (at a modest throughput cost). When we want to model shard more ways than we have KV heads, we can shard our KVs along the batch dimension as well.</p>
 
 ### Sharding the KV cache
 
